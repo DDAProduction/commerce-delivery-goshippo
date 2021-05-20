@@ -54,15 +54,13 @@ class CountryRepository
 
 
 
-    public function getSelectedCountryFromRequest($countries = null){
+    public function getSelectedCountryFromRequest($request= []){
 
-        if(is_null($countries)){
-            $countries = $this->all();
-        }
+        $countries = $this->all();
 
         $selectedCountry = null;
-        if(isset($_REQUEST['delivery_goshippo_country']) && array_key_exists($_REQUEST['delivery_goshippo_country'],$countries)){
-            $selectedCountry = $countries[$_REQUEST['delivery_goshippo_country']];
+        if(isset($request['delivery_goshippo_country']) && array_key_exists($request['delivery_goshippo_country'],$countries)){
+            $selectedCountry = $countries[$request['delivery_goshippo_country']];
         }
         else if(count($countries) == 1){
             $selectedCountry = $countries[key($countries)];
@@ -73,7 +71,10 @@ class CountryRepository
     }
 
 
+    public function get($countryIso){
+        $eCountryIso = $this->modx->db->escape($countryIso);
 
-
-
+        $sql  = "select `iso`,`require_state`, `title_$this->langCode` as `title`  from $this->table where `iso` = '$eCountryIso'";
+        return $this->modx->db->getRow($this->modx->db->query($sql));
+    }
 }

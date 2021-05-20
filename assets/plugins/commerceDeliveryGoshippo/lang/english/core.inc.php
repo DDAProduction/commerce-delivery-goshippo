@@ -13,6 +13,12 @@ return [
     'fill_street'=>'Fill Street',
     'fill_city'=>'Fill City',
 
+    'subtotal_title'=>'Delivery',
+    'delivery_info'=>'Delivery info',
+
+    'label_url'=>'Label url',
+    'tracking_number'=>'Tracking Number',
+    'tracking_url_provider'=>'Tracking Url',
 
 
 ];

@@ -31,10 +31,13 @@ class StateRepository
         return $this->modx->db->makeArray($this->modx->db->query($sql));
     }
 
+    public function getState($stateIso,$countryIso){
+        $eCountryIso = $this->modx->db->escape($countryIso);
+        $eStateIso = $this->modx->db->escape($stateIso);
 
+        $sql  = "select `iso`, `title_$this->langCode` as `title` from $this->table  where `country_iso` = '$eCountryIso' and `iso` = '$eStateIso' ";
 
-
-
-
+        return $this->modx->db->getRow($this->modx->db->query($sql));
+    }
 
 }

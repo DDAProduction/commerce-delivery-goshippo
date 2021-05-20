@@ -14,6 +14,9 @@ class Cache
     public function __construct()
     {
         $this->fs = FS::getInstance();
+
+        $this->createCacheDirIfNotExistst();
+
     }
 
     public function has($key){
@@ -21,10 +24,13 @@ class Cache
     }
 
     public function set($key,$value){
-        if(!@file_put_contents($key,json_encode($value))){
+        $saveResult = @file_put_contents($this->getCacheFilePath($key),json_encode($value));
+
+        if(!$saveResult){
             throw new \Exception('Goshippo cache set failder');
         }
     }
+
     public function get($key){
         if(!$this->has($key)){
             return false;
@@ -34,5 +40,12 @@ class Cache
 
     private function getCacheFilePath($key){
         return MODX_BASE_PATH.$this->cacheDir.$key.'.json';
+    }
+
+    private function createCacheDirIfNotExistst()
+    {
+        if(!file_exists(MODX_BASE_PATH.$this->cacheDir)){
+            $this->fs->makeDir(MODX_BASE_PATH.$this->cacheDir);
+        }
     }
 }

@@ -1,6 +1,11 @@
 (function () {
 
 
+    $(document).on('change','#delivery_goshippo_rate',function () {
+
+        Commerce.updateOrderData(document.querySelector('[data-commerce-order]'))
+
+    });
     $(document).on('change','#delivery_goshippo_country',function () {
         var $option = $('#delivery_goshippo_country option:selected');
 
@@ -42,12 +47,14 @@
             return;
         }
 
-        $('#goshippo_markup input, #goshippo_markup select').prop('readonly',true)
 
-        $('#goshippo_markup').addClass('goshippo-reload');
 
         clearTimeout(goshippoFieldChangeTimer);
         goshippoFieldChangeTimer = setTimeout(function () {
+
+            $('#goshippo_markup input, #goshippo_markup select').prop('readonly',true)
+            $('#goshippo_markup').addClass('goshippo-reload');
+
             Commerce.updateOrderData(document.querySelector('[data-commerce-order]'))
             console.log('Goshippo requestRates')
         },1000)

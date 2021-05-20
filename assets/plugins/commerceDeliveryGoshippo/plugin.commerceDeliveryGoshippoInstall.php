@@ -1,15 +1,10 @@
 <?php
-define('MODX_API_MODE', true);
-include_once($_SERVER['DOCUMENT_ROOT']."/index.php");
-
-$modx->db->connect();
-if (empty ($modx->config)) {
-    $modx->getSettings();
-}
-$modx->invokeEvent("OnWebPageInit");
-
-
+$tableEventnames = $modx->getFullTablename('system_eventnames');
+$tablePlugins    = $modx->getFullTablename('site_plugins');
+$tableEvents     = $modx->getFullTablename('site_plugin_events');
+$statesTable = $modx->getFullTableName('commerce_delivery_goshippo_states');
 $countryTable = $modx->getFullTableName('commerce_delivery_goshippo_countries');
+
 $modx->db->query("
     CREATE TABLE IF NOT EXISTS {$countryTable} (
       `iso` varchar(2) NOT NULL,
@@ -21,7 +16,7 @@ $modx->db->query("
 
 
 
-$statesTable = $modx->getFullTableName('commerce_delivery_goshippo_states');
+
 $modx->db->query("
     CREATE TABLE IF NOT EXISTS {$statesTable} (
         `id` int(10) NOT NULL AUTO_INCREMENT,
@@ -388,3 +383,14 @@ foreach ($countries as $iso => $countryTitle) {
 
 
 }
+
+
+// remove installer
+$query = $modx->db->select('id', $tablePlugins, "`name` = 'CommerceDeliveryGoshippoInstall'");
+
+if ($id = $modx->db->getValue($query)) {
+    $modx->db->delete($tablePlugins, "`id` = '$id'");
+    $modx->db->delete($tableEvents, "`pluginid` = '$id'");
+};
+
+$modx->clearCache('full');

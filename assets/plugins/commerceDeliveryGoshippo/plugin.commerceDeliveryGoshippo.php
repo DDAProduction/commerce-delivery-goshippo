@@ -4,6 +4,8 @@
 /** @var \Commerce\Commerce $commerce */
 
 
+use CommerceDeliveryGoshippo\Services\AddressRequest;
+
 require_once MODX_BASE_PATH . 'assets/plugins/commerceDeliveryGoshippo/autoload.php';
 
 $commerce = ci()->commerce;
@@ -14,6 +16,9 @@ $config = new \Helpers\Config($params);
 
 $deliveryMethodKey = 'goschippo';
 
+
+
+$cache = new \CommerceDeliveryGoshippo\Cache();
 
 
 $availableLanguages = [
@@ -38,19 +43,21 @@ Shippo::setApiKey($config->getCFGDef('goshippo_token'));
 
 $showOnlyCountries = !empty($config->getCFGDef('showOnlyCountries')) ? explode(',', $config->getCFGDef('showOnlyCountries')) : [];
 $countryRepository = new \CommerceDeliveryGoshippo\Repositories\CountryRepository($modx, $langCode, $showOnlyCountries);
+$stateRepository = new \CommerceDeliveryGoshippo\Repositories\StateRepository($modx, $langCode);
 
 
+$addressRequest = new AddressRequest($cache,$config,$countryRepository,$stateRepository, $_REQUEST);
 
 
-
-
+/** @var \Commerce\Processors\OrdersProcessor $processor */
+$processor = $modx->commerce->loadProcessor();
 
 switch ($event->name) {
     case 'OnInitializeOrderForm':
-        /** @var \Commerce\Processors\OrdersProcessor $processor */
-        $processor = $modx->commerce->loadProcessor();
+
         $currentDelivery = $processor->getCurrentDelivery();
         $selectedCountry = $countryRepository->getSelectedCountryFromRequest();
+
 
         if($currentDelivery == $deliveryMethodKey){
             $rules = [
@@ -77,28 +84,23 @@ switch ($event->name) {
                 ];
             }
             $params['config']['rules'] = array_merge($params['config']['rules'],$rules);
-
-
         }
 
-
-
         break;
+
     case 'OnRegisterDelivery':
 
+        $start = microtime(true);
 
         $processor = $modx->commerce->loadProcessor();
         $currentDelivery = $processor->getCurrentDelivery();
 
+        if(is_null($currentDelivery) && empty($rows)){
+            $currentDelivery = $deliveryMethodKey;
+        }
+
         $scripts = '';
 
-
-//        if ($config->getCFGDef('loadAutocomplete')) {
-//            $scripts .= $assets->registerScriptsList([
-//                'autoComplete.css' => ['src' => 'assets/plugins/commerceDeliveryGoshippo/assets/autoComplete/css/autoComplete.min.css'],
-//                'autoComplete.js' => ['src' => 'assets/plugins/commerceDeliveryGoshippo/assets/autoComplete/js/autoComplete.min.js'],
-//            ]);
-//        }
         if ($config->getCFGDef('loadCss')) {
             $scripts .= $assets->registerScriptsList([
                 'goshippo.css' => ['src' => 'assets/plugins/commerceDeliveryGoshippo/assets/goshippo.css'],
@@ -121,110 +123,39 @@ switch ($event->name) {
 
         $price = 0;
         $markup = '';
-
+        $errors = [];
+        $rates = [];
         if ($currentDelivery == $deliveryMethodKey) {
 
-
             $countries = $countryRepository->all();
-            $selectedCountry = $countryRepository->getSelectedCountryFromRequest($countries);
+            $selectedCountry = $addressRequest->getSelectedCountry();
 
-            $errors = [];
-            $rates = [];
             $states = [];
-            $selectedState = [];
-
             if ($selectedCountry && $selectedCountry['require_state']) {
-                $stateRepository = new \CommerceDeliveryGoshippo\Repositories\StateRepository($modx, $langCode);
                 $states = $stateRepository->getCountryStates($selectedCountry['iso']);
             }
 
-
-            if (isset($_REQUEST['delivery_goshippo_state'])) {
-                foreach ($states as $state) {
-                    if ($_REQUEST['delivery_goshippo_state'] == $state['iso']) {
-                        $selectedState = $state;
-                    }
-                }
-            }
-
-            $fullName = $_REQUEST[$config->getCFGDef('full_name_field')];
-            $canRequestRates = !empty($fullName) && !empty($selectedCountry) && (!empty($states) && !empty($selectedState)) && !empty($_REQUEST['delivery_goshippo_zip'])
-                && !empty($_REQUEST['delivery_goshippo_city']) && !empty($_REQUEST['delivery_goshippo_street']);
-
-
-
+            $selectedState = $addressRequest->getSelectedState();
 
 
             $ratesRequestHash = '';
 
-            if ($canRequestRates) {
 
-                $addressToRequest = array_filter([
-                    'name' => $fullName,
-                    'street1' => $_REQUEST['delivery_goshippo_street'],
-                    'city' => $_REQUEST['delivery_goshippo_city'],
-                    'state' => $_REQUEST['delivery_goshippo_state'],
-                    'zip' => $_REQUEST['delivery_goshippo_zip'],
-                    'country' => $_REQUEST['delivery_goshippo_country'],
-                ]);
+            if($addressRequest->isFullAddress()){
 
-                $cart = ci()->carts->getCart('products');
-                $items = $cart->getItems();
+                $ratesRequestHash = $addressRequest->getRateRequestHash();
 
 
-                $sideSize = (new \CommerceDeliveryGoshippo\Services\PackageSizeCalculator($config))->calculate($items);
-                $weight = (new \CommerceDeliveryGoshippo\Services\PackageWeightCalculator($config))->calculate($items);
-
-                $parcel = array(
-                    'length' => $sideSize,
-                    'width' => $sideSize,
-                    'height' => $sideSize,
-                    'distance_unit' => $config->getCFGDef('distance_units'),
-                    'weight' => $weight,
-                    'mass_unit' => $config->getCFGDef('mass_units'),
-                );
-
-
-                $ratesRequestHash = md5(json_encode(['addressToRequest'=>$addressToRequest,'parcel'=>$parcel]));
-
-
-
-                $addressFrom = Shippo_Address::create(array_filter([
-                    'name' => $config->getCFGDef('from_name'),
-                    'street1' => $config->getCFGDef('from_street1'),
-                    'city' => $config->getCFGDef('from_city'),
-                    'state' => $config->getCFGDef('from_state'),
-                    'zip' => $config->getCFGDef('from_zip'),
-                    'country' => $config->getCFGDef('from_country'),
-                ]));
-
-
-                $addressTo = Shippo_Address::create($addressToRequest);
-
-
-
-
-                $shipmentRequest = [
-                    'address_from' => $addressFrom,
-                    'address_to' => $addressTo,
-                    'parcels' => [$parcel],
-                    'async' => false
-                ];
-                $shipment = Shippo_Shipment::create($shipmentRequest);
-
-                $ratesRequest = $shipment->__toArray(true);
-
-
-                if ($ratesRequest["status"] == "SUCCESS") {
-                    $rates = $ratesRequest['rates'];
-
-
-                } else {
-                    $errors = array_merge($errors, $ratesRequest['messages']);
+                try {
+                    $rates = $addressRequest->getRates();
                 }
-
-
+                catch (Exception $e){
+                    $errors[] = $e->getMessage();
+                }
             }
+
+
+
 
             $markupData = [
                 'ratesRequestHash' => $ratesRequestHash,
@@ -245,6 +176,8 @@ switch ($event->name) {
             $markup = $lexicon->parse($markup);
 
         }
+
+
         $params['rows'][$deliveryMethodKey] = [
             'title' => $config->getCFGDef('title', $lexicon->get('title')),
             'markup' => $markup,
@@ -255,12 +188,96 @@ switch ($event->name) {
         break;
     case 'OnCollectSubtotals':
 
-//        echo 2;
+        $currentDelivery = $processor->getCurrentDelivery();
+        $selectedRate = $addressRequest->getSelectedRate();
 
 
-//        var_dump($_REQUEST['goshippoRates']);
-//        die();
+        if($selectedRate && $currentDelivery == $deliveryMethodKey){
+
+
+            $deliveryPrice = ci()->currency->convertToActive($selectedRate['amount'], $selectedRate['currency']);
+            if($config->getCFGDef('addDeliveryPriceToTotal')){
+            $params['total'] += $deliveryPrice;
+            }
+            $params['rows'][$deliveryMethodKey] = [
+                'title' => $lexicon->get('subtotal_title'),
+                'price' => $deliveryPrice,
+            ];
+            break;
+
+        }
         break;
+    case 'OnBeforeOrderProcessing':
+
+        $currentDelivery = $processor->getCurrentDelivery();
+        $selectedRate = $addressRequest->getSelectedRate();
+
+        if($currentDelivery == $deliveryMethodKey && $selectedRate ){
+
+            // Purchase the desired rate.
+            $transaction = Shippo_Transaction::create( [
+                'rate' => $selectedRate["object_id"],
+                'label_file_type' => "PDF",
+                'async' => false
+            ])->__toArray();
+
+
+            if ($transaction["status"] == "SUCCESS"){
+
+                $FL->setField('goshippo', [
+                    'label_url'=> $transaction["label_url"],
+                    'tracking_number'=> $transaction["tracking_number"],
+                    'tracking_url_provider'=> $transaction["tracking_url_provider"],
+                ]);
+
+                $modx->logEvent(1,1,'Goshippo create success <br>'.print_r($transaction,true),'Goshippo');
+
+
+            }else {
+                $modx->logEvent(1,3,print_r($transaction["messages"],true),'Goshippo');
+
+            }
+
+
+
+
+        }
+        break;
+    case 'OnManagerBeforeOrderRender':
+
+
+        if($params['order']['fields']){
+
+            $params['groups']['payment_delivery']['fields']['label_url'] = [
+                'title' => $lexicon->get('label_url'),
+                'content' => function ($data) {
+                    return '<a target="_blank" href=' . $data['fields']['goshippo']['label_url'] . '>Follow</a>';
+                },
+                'sort' => 21,
+            ];
+
+            $params['groups']['payment_delivery']['fields']['tracking_number'] = [
+                'title' => $lexicon->get('label_url'),
+                'content' => function ($data) {
+
+                    return $data['fields']['goshippo']['tracking_number'];
+                },
+                'sort' => 22,
+            ];
+
+            $params['groups']['payment_delivery']['fields']['tracking_url_provider'] = [
+                'title' => $lexicon->get('tracking_url_provider'),
+                'content' => function ($data) {
+                    return '<a target="_blank" href=' . $data['fields']['goshippo']['tracking_url_provider'] . '>Follow</a>';
+                },
+                'sort' => 23,
+            ];
+
+        }
+
+        break;
+
+
     case 'OnPageNotFound':
         switch ($_GET['q']){
             case 'ajax/commerce/delivery/goshippo/states':
