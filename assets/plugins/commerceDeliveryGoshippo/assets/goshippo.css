@@ -1,3 +1,7 @@
 .goshippo-hide{
     display: none;
 }
+
+.goshippo-reload{
+    opacity: 0.5;
+}

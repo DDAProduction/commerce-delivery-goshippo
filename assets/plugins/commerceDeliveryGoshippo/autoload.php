@@ -5,6 +5,7 @@ spl_autoload_register(function ($class) {
 
     if ($classes === null) {
         $classes = [
+            'Helpers\\FS'              => '/../../lib/Helpers/FS.php',
             //'FormLister\\Form'         => '/../../snippets/FormLister/core/controller/Form.php',
 //            'Helpers\\Lexicon'         => [
 //                '/../../lib/Helpers/Lexicon.php',

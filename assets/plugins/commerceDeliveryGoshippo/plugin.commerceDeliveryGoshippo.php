@@ -86,6 +86,7 @@ switch ($event->name) {
         break;
     case 'OnRegisterDelivery':
 
+
         $processor = $modx->commerce->loadProcessor();
         $currentDelivery = $processor->getCurrentDelivery();
 
@@ -104,10 +105,17 @@ switch ($event->name) {
             ]);
         }
         if ($config->getCFGDef('loadJs')) {
+            $scripts .= $render->render('config.php',[
+                'config'=>[
+                    'fullNameField' => $config->getCFGDef('full_name_field'),
+                    'deliveryMethodKey'=>$deliveryMethodKey
+                ]
+            ]);
             $scripts .= $assets->registerScriptsList([
                 'goshippo.js' => ['src' => 'assets/plugins/commerceDeliveryGoshippo/assets/script.js'],
             ]);
         }
+
         $modx->regClientHTMLBlock($scripts);
 
 
@@ -137,37 +145,28 @@ switch ($event->name) {
                         $selectedState = $state;
                     }
                 }
-
             }
 
-
             $fullName = $_REQUEST[$config->getCFGDef('full_name_field')];
-
             $canRequestRates = !empty($fullName) && !empty($selectedCountry) && (!empty($states) && !empty($selectedState)) && !empty($_REQUEST['delivery_goshippo_zip'])
                 && !empty($_REQUEST['delivery_goshippo_city']) && !empty($_REQUEST['delivery_goshippo_street']);
 
 
+
+
+
+            $ratesRequestHash = '';
+
             if ($canRequestRates) {
 
-                $addressFrom = Shippo_Address::create(array_filter([
-                    'name' => $config->getCFGDef('from_name'),
-                    'street1' => $config->getCFGDef('from_street1'),
-                    'city' => $config->getCFGDef('from_city'),
-                    'state' => $config->getCFGDef('from_state'),
-                    'zip' => $config->getCFGDef('from_zip'),
-                    'country' => $config->getCFGDef('from_country'),
-                ]));
-
-
-                $addressTo = Shippo_Address::create(array_filter([
+                $addressToRequest = array_filter([
                     'name' => $fullName,
                     'street1' => $_REQUEST['delivery_goshippo_street'],
                     'city' => $_REQUEST['delivery_goshippo_city'],
                     'state' => $_REQUEST['delivery_goshippo_state'],
                     'zip' => $_REQUEST['delivery_goshippo_zip'],
                     'country' => $_REQUEST['delivery_goshippo_country'],
-                ]));
-
+                ]);
 
                 $cart = ci()->carts->getCart('products');
                 $items = $cart->getItems();
@@ -185,18 +184,41 @@ switch ($event->name) {
                     'mass_unit' => $config->getCFGDef('mass_units'),
                 );
 
-                $shipment = Shippo_Shipment::create(array(
-                        'address_from' => $addressFrom,
-                        'address_to' => $addressTo,
-                        'parcels' => [$parcel],
-                        'async' => false
-                    )
-                );
+
+                $ratesRequestHash = md5(json_encode(['addressToRequest'=>$addressToRequest,'parcel'=>$parcel]));
+
+
+
+                $addressFrom = Shippo_Address::create(array_filter([
+                    'name' => $config->getCFGDef('from_name'),
+                    'street1' => $config->getCFGDef('from_street1'),
+                    'city' => $config->getCFGDef('from_city'),
+                    'state' => $config->getCFGDef('from_state'),
+                    'zip' => $config->getCFGDef('from_zip'),
+                    'country' => $config->getCFGDef('from_country'),
+                ]));
+
+
+                $addressTo = Shippo_Address::create($addressToRequest);
+
+
+
+
+                $shipmentRequest = [
+                    'address_from' => $addressFrom,
+                    'address_to' => $addressTo,
+                    'parcels' => [$parcel],
+                    'async' => false
+                ];
+                $shipment = Shippo_Shipment::create($shipmentRequest);
 
                 $ratesRequest = $shipment->__toArray(true);
 
+
                 if ($ratesRequest["status"] == "SUCCESS") {
                     $rates = $ratesRequest['rates'];
+
+
                 } else {
                     $errors = array_merge($errors, $ratesRequest['messages']);
                 }
@@ -205,6 +227,7 @@ switch ($event->name) {
             }
 
             $markupData = [
+                'ratesRequestHash' => $ratesRequestHash,
                 'countries' => $countries,
                 'selectedCountry' => $selectedCountry,
 
@@ -229,6 +252,14 @@ switch ($event->name) {
         ];
 
 
+        break;
+    case 'OnCollectSubtotals':
+
+//        echo 2;
+
+
+//        var_dump($_REQUEST['goshippoRates']);
+//        die();
         break;
     case 'OnPageNotFound':
         switch ($_GET['q']){

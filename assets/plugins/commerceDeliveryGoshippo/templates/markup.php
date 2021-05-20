@@ -1,4 +1,13 @@
-<div>
+<div id="goshippo_markup">
+    <? if(!empty($errors)): ?>
+        <div class="goshippo_errors">
+            <?php foreach ($errors as $error): ?>
+                <p><?= $error ?></p>
+            <?php endforeach; ?>
+        </div>
+    <?endif; ?>
+
+    <input type="text" name="delivery_goshippo_country_rates_request_hash" value="<?= $ratesRequestHash ?>">
 
     <div class="delivery_goshippo_country_owner <?= count($countries) === 1?'goshippo-hide':'' ?>">
         <select name="delivery_goshippo_country" id="delivery_goshippo_country" class="delivery_goshippo_country <?= count($countries) === 1?'goshippo-hide':'' ?>">
@@ -22,19 +31,19 @@
     </div>
 
     <div class="delivery_goshippo_zip_owner">
-        <input type="text" name="delivery_goshippo_zip" class="delivery_goshippo_zip" placeholder="[%fill_zip%]"
+        <input type="text" name="delivery_goshippo_zip" id="delivery_goshippo_zip" class="delivery_goshippo_zip" placeholder="[%fill_zip%]"
                value="<?= isset($request['delivery_goshippo_zip'])?$request['delivery_goshippo_zip']:'' ?>"
         >
         [+delivery_goshippo_zip.error+]
     </div>
     <div class="delivery_goshippo_city_owner">
-        <input type="text" name="delivery_goshippo_city" class="delivery_goshippo_city" placeholder="[%fill_city%]"
+        <input type="text" name="delivery_goshippo_city" id="delivery_goshippo_city" class="delivery_goshippo_city" placeholder="[%fill_city%]"
                value="<?= isset($request['delivery_goshippo_city'])?$request['delivery_goshippo_city']:'' ?>"
         >
         [+delivery_goshippo_city.error+]
     </div>
     <div class="delivery_goshippo_street_owner">
-    <input type="text" name="delivery_goshippo_street" class="delivery_goshippo_street" placeholder="[%fill_street%]"
+    <input type="text" name="delivery_goshippo_street" id="delivery_goshippo_street" class="delivery_goshippo_street" placeholder="[%fill_street%]"
            value="<?= isset($request['delivery_goshippo_street'])?$request['delivery_goshippo_street']:'' ?>"
     >
         [+delivery_goshippo_street.error+]
