@@ -257,7 +257,7 @@ switch ($event->name) {
             ];
 
             $params['groups']['payment_delivery']['fields']['tracking_number'] = [
-                'title' => $lexicon->get('label_url'),
+                'title' => $lexicon->get('https://monosnap.com/direct/o95Px9Hc8ovUrYexJwyMRrFFAi7frr'),
                 'content' => function ($data) {
 
                     return $data['fields']['goshippo']['tracking_number'];
