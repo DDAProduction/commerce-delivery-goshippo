@@ -1,0 +1,1 @@
+<input type="text" class="form-control" data-delivery="goshippo" id="<?=$name ?>" name="order[fields][<?=$name ?>]" value="<?= htmlentities($value) ?>">

@@ -53,7 +53,7 @@
         <select name="delivery_goshippo_rate" id="delivery_goshippo_rate">
             <option value="">[%select_rate%]</option>
             <?php foreach ($rates as $rate): ?>
-                <option  <?= $rate['object_id'] == $request['delivery_goshippo_rate'] ? 'selected':'' ?> value="<?= $rate['object_id']?>"><?= $rate['provider'] ?>, <?= $rate['amount'].' '.$rate['currency'] ?> (<?=$rate['servicelevel']['name'] ?>)</option>
+                <option  <?= $rate['object_id'] == $request['delivery_goshippo_rate'] ? 'selected':'' ?> value="<?= $rate['object_id']?>"><?= $rate['title'] ?></option>
             <?php endforeach; ?>
 
         </select>

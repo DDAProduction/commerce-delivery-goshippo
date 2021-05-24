@@ -2,6 +2,8 @@
 
 namespace CommerceDeliveryGoshippo;
 
+use Helpers\Lexicon;
+
 class Renderer
 {
 
@@ -12,10 +14,21 @@ class Renderer
     protected $extensionLevels = [];
     protected $templateLevels = [];
 
-    public function __construct($modx, $lang)
+    /**
+     * @var string
+     */
+    private $lang;
+    /**
+     * @var Lexicon
+     */
+    private $lexicon;
+
+    public function __construct($modx, Lexicon $lexicon)
     {
         $this->modx = $modx;
-        $this->lang = $lang;
+
+        $this->lang = $lexicon->get('lang_code');
+        $this->lexicon = $lexicon;
     }
 
 
@@ -50,7 +63,7 @@ class Renderer
         }
 
         array_pop($this->templateLevels);
-        return ob_get_clean();
+        return $this->lexicon->parse(ob_get_clean());
     }
 
     public function extend($parent)

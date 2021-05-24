@@ -5,6 +5,14 @@ return [
 
     'lang_code' => 'en',
 
+    'country'=>'Country',
+    'state'=>'State',
+    'zip'=>'Zip',
+    'city'=>'City',
+    'street'=>'Street',
+    'rate'=>'Rate',
+
+
     'select_state'=>'Select state',
     'select_country'=>'Select country',
     'select_rate'=>'Select rate',

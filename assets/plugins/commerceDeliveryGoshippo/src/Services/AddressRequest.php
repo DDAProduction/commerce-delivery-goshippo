@@ -15,6 +15,18 @@ class AddressRequest
      * @var Cache
      */
     private $cache;
+    /**
+     * @var mixed
+     */
+    private $fullNameField;
+
+    /**
+     * @param mixed $fullNameField
+     */
+    public function setFullNameField($fullNameField)
+    {
+        $this->fullNameField = $fullNameField;
+    }
 
     /**
      * @return null
@@ -56,6 +68,10 @@ class AddressRequest
 
 
 
+    private $cartItems;
+
+
+
     public function __construct(Cache $cache,Config $config, CountryRepository $countryRepository, StateRepository $stateRepository,array $request)
     {
         $this->config = $config;
@@ -66,6 +82,11 @@ class AddressRequest
 
         $this->initCountries();
         $this->initStates();
+        $this->initCartItems();
+
+        $this->fullNameField = $this->config->getCFGDef('full_name_field');
+
+
 
         $this->cache = $cache;
     }
@@ -94,12 +115,11 @@ class AddressRequest
 
 
 
-        $cart = ci()->carts->getCart('products');
-        $items = $cart->getItems();
 
 
-        $sideSize = (new \CommerceDeliveryGoshippo\Services\PackageSizeCalculator($this->config))->calculate($items);
-        $weight = (new \CommerceDeliveryGoshippo\Services\PackageWeightCalculator($this->config))->calculate($items);
+
+        $sideSize = (new \CommerceDeliveryGoshippo\Services\PackageSizeCalculator($this->config))->calculate($this->cartItems);
+        $weight = (new \CommerceDeliveryGoshippo\Services\PackageWeightCalculator($this->config))->calculate($this->cartItems);
 
         $parcel = array(
             'length' => $sideSize,
@@ -122,8 +142,6 @@ class AddressRequest
 
     public function getRates()
     {
-        $start = microtime(true);
-
 
         $shipmentRequestData = $this->getDataForShipmentRequest();
 
@@ -133,8 +151,6 @@ class AddressRequest
         }
 
         $ratesRequestHash = $this->getRateRequestHash();
-
-
 
 
         if ($this->cache->has($ratesRequestHash)) {
@@ -151,6 +167,11 @@ class AddressRequest
 
             if ($ratesRequest["status"] == "SUCCESS") {
                 $rates = $ratesRequest['rates'];
+
+                foreach ($rates as $key => $rate) {
+                    $rates[$key]['title'] = $rate['provider'].', '.$rate['amount'].' '.$rate['currency'].' ('.$rate['servicelevel']['name'].')';
+                }
+
                 $this->cache->set($ratesRequestHash, $rates);
             } else {
                 throw new \Exception(implode(',',$ratesRequest['messages']));
@@ -166,6 +187,7 @@ class AddressRequest
 
         $fullName = $this->getFullNameFromRequest();
 
+
         return
             !empty($fullName) &&
             !empty($this->selectedCountry) &&
@@ -177,7 +199,9 @@ class AddressRequest
     }
 
     public function getFullNameFromRequest(){
-        return $this->request[$this->config->getCFGDef('full_name_field')];
+
+        return $this->request[$this->fullNameField];
+
     }
 
     public function initStates(){
@@ -212,6 +236,17 @@ class AddressRequest
             }
         }
         return $selectedRate;
+    }
+
+    public function setCartItems($cartItems)
+    {
+        $this->cartItems = $cartItems;
+    }
+
+    private function initCartItems()
+    {
+        $cart = ci()->carts->getCart('products');
+        $this->cartItems = $cart->getItems();
     }
 
 }

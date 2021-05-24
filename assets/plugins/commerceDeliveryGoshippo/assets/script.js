@@ -40,13 +40,10 @@
     let goshippoFieldChangeTimer;
     function goshippoFieldChange() {
 
-        console.log('goshippoFieldChange')
-
         if(!canRequestRates()){
             console.log('can not requestRates');
             return;
         }
-
 
 
         clearTimeout(goshippoFieldChangeTimer);
