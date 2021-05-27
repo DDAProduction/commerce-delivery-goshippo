@@ -26,21 +26,12 @@ $config = new Config($params);
 
 $deliveryMethodKey = 'goschippo';
 
+$config->setConfig(['deliveryMethodKey'=>$deliveryMethodKey]);
+
 
 $cache = new Cache();
 
-
-$availableLanguages = [
-    'english'
-];
-
-
-$lang = in_array($commerce->getCurrentLang(), $availableLanguages) ? $commerce->getCurrentLang() : $availableLanguages[key($availableLanguages)];
-$lexicon = new Lexicon($modx, [
-    'lang' => $lang,
-    'langDir' => 'assets/plugins/commerceDeliveryGoshippo/lang/'
-]);
-$lexicon->fromFile('core');
+$lexicon = \CommerceDeliveryGoshippo\Factories\LexiconFactory::build();
 
 $langCode = $lexicon->get('lang_code');
 
@@ -86,7 +77,7 @@ switch ($event->name) {
         break;
     case 'OnManagerBeforeOrderRender':
 
-        $action = new \CommerceDeliveryGoshippo\Actions\OnManagerBeforeOrderRenderAction($lexicon);
+        $action = new \CommerceDeliveryGoshippo\Actions\OnManagerBeforeOrderRenderAction($lexicon,$config);
         $action->handle($params);
         break;
 
@@ -100,8 +91,6 @@ switch ($event->name) {
         $jsConfig = [
             'fullNameField' => $config->getCFGDef('module_full_name_field'),
             'deliveryMethodKey' => $deliveryMethodKey
-
-
         ];
 
         $scripts = '';
@@ -116,6 +105,9 @@ switch ($event->name) {
 
         break;
 
+    case 'OnManagerRegisterCommerceController':
+        (new \CommerceDeliveryGoshippo\Actions\OnManagerRegisterCommerceControllerAction($modx))->handle($params);
+        break;
     case 'OnPageNotFound':
         if (!preg_match('~^ajax/commerce/delivery/goshippo/(.*)$~', $_GET['q'], $matches)) {
             return true;

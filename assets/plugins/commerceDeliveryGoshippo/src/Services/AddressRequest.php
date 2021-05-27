@@ -121,6 +121,7 @@ class AddressRequest
         $sideSize = (new \CommerceDeliveryGoshippo\Services\PackageSizeCalculator($this->config))->calculate($this->cartItems);
         $weight = (new \CommerceDeliveryGoshippo\Services\PackageWeightCalculator($this->config))->calculate($this->cartItems);
 
+
         $parcel = array(
             'length' => $sideSize,
             'width' => $sideSize,

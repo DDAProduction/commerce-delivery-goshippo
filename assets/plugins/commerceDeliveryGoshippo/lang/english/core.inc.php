@@ -17,6 +17,7 @@ return [
     'select_country'=>'Select country',
     'select_rate'=>'Select rate',
 
+
     'fill_zip'=>'Fill Zip',
     'fill_street'=>'Fill Street',
     'fill_city'=>'Fill City',
@@ -27,6 +28,12 @@ return [
     'label_url'=>'Label url',
     'tracking_number'=>'Tracking Number',
     'tracking_url_provider'=>'Tracking Url',
+    'invoice'=>'Invoice',
+    'generate'=>'Generate',
+    'invoice_create'=>'Invoice create',
+    'update'=>'Update',
+
+
 
 
 ];

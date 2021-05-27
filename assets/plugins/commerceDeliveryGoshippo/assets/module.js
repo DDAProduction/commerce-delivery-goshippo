@@ -1,4 +1,4 @@
-(function ($) {
+var $ = jQuery;
     let goshippoFieldChangeTimer;
 
     let fullNameFieldName = goshippoConfig.fullNameField;
@@ -18,9 +18,9 @@
 
         }
 
-
-
     });
+
+
 
 
     function canRequestRates() {
@@ -39,9 +39,12 @@
         let city =  $('#delivery_goshippo_city').val();
         let street =  $('#delivery_goshippo_street').val();
 
-        debugger;
 
-        return deliveryMethod === goshippoConfig.deliveryMethodKey && name && country && (requireState === 0 || state) && zip && city && street
+
+
+        var result =  deliveryMethod === goshippoConfig.deliveryMethodKey && name && country && (requireState === 0 || state) && zip && city && street;
+        debugger;
+        return result;
     }
 
 
@@ -121,15 +124,34 @@
         .on('keyup','#delivery_goshippo_street',goshippoUpdateRates)
     ;
 
+    function updateStateVisibility() {
+        var $option = $('#delivery_goshippo_country option:selected');
+
+        var $tr = $("#delivery_goshippo_state").closest('tr');
 
 
+        if(parseInt($option.data('state')) === 1){
+            $tr.show();
+        }
 
+        else {
+            $tr.hide();
+        }
+    }
+
+    $(document).ready(updateStateVisibility);
+
+
+    $(document).on('click','#update-rates',function () {
+
+        goshippoUpdateRates();
+    });
     $(document).on('change','#delivery_goshippo_country',function () {
         var $option = $('#delivery_goshippo_country option:selected');
 
+        updateStateVisibility();
+
         var country = $(this).val();
-
-
 
         $('#delivery_goshippo_state option:gt(0)').remove();
 
@@ -146,10 +168,6 @@
 
             })
         }
-
-
     });
 
 
-
-})(jQuery)

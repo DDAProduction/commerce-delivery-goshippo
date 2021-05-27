@@ -133,10 +133,13 @@ class OnManagerBeforeOrderEditRenderAction
 
                 if ($data['fields']['goshippo']['rate']) {
 
-                    $rates[] = $data['fields']['goshippo']['rate'];
-                    $selectedRate = $data['fields']['goshippo']['rate'];
+                    $rate = json_decode($data['fields']['goshippo']['rate'],true);
+
+                    $rates[] = $rate;
+                    $selectedRate = $rate;
 
                 }
+
                 return $render->render('module/rate.php', [
                     'rates' => $rates,
                     'selectedRate' => $selectedRate,
