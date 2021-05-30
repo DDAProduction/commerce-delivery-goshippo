@@ -4,11 +4,15 @@
 namespace CommerceDeliveryGoshippo\Actions;
 
 
-use Commerce\Processors\OrdersProcessor;
+use Commerce\Commerce;
+use CommerceDeliveryGoshippo\Cache;
+use CommerceDeliveryGoshippo\Container;
+use CommerceDeliveryGoshippo\Factories\ShipmentBuilder;
 use CommerceDeliveryGoshippo\Renderer;
 use CommerceDeliveryGoshippo\Repositories\CountryRepository;
 use CommerceDeliveryGoshippo\Repositories\StateRepository;
-use CommerceDeliveryGoshippo\Services\AddressRequest;
+use CommerceDeliveryGoshippo\Services\RatesCalculator;
+use CommerceDeliveryGoshippo\Shipment;
 use Exception;
 use Helpers\Config;
 use Helpers\Lexicon;
@@ -17,10 +21,7 @@ class OnRegisterDeliveryAction
 {
 
     private $deliveryMethodKey;
-    /**
-     * @var OrdersProcessor
-     */
-    private $ordersProcessor;
+
     /**
      * @var Config
      */
@@ -45,31 +46,126 @@ class OnRegisterDeliveryAction
      * @var Lexicon
      */
     private $lexicon;
-    /**
-     * @var AddressRequest
-     */
-    private $addressRequest;
+
     /**
      * @var StateRepository
      */
     private $stateRepository;
+    /**
+     * @var \Commerce\Interfaces\Processor|\Commerce\Processors\OrdersProcessor
+     */
+    private $orderProcessor;
+    /**
+     * @var RatesCalculator|false|mixed
+     */
+    private $ratesCalculator;
+    /**
+     * @var Cache|false|mixed
+     */
+    private $cache;
 
-    public function __construct($deliveryMethodKey, OrdersProcessor $ordersProcessor, Config $config, \AssetsHelper $assetsHelper, Renderer $renderer, \DocumentParser $modx, CountryRepository $countryRepository, Lexicon $lexicon, AddressRequest $addressRequest,StateRepository $stateRepository)
+
+    public function __construct(Container $container)
     {
-        $this->deliveryMethodKey = $deliveryMethodKey;
-        $this->ordersProcessor = $ordersProcessor;
-        $this->config = $config;
-        $this->assetsHelper = $assetsHelper;
-        $this->renderer = $renderer;
-        $this->modx = $modx;
-        $this->countryRepository = $countryRepository;
-        $this->lexicon = $lexicon;
-        $this->addressRequest = $addressRequest;
-        $this->stateRepository = $stateRepository;
+
+
+        $this->countryRepository = $container->get(CountryRepository::class);
+        $this->stateRepository = $container->get(StateRepository::class);
+
+        $this->config = $container->get(Config::class);
+
+        $this->deliveryMethodKey = $this->config->getCFGDef('deliveryMethodKey');
+
+        $this->assetsHelper = $container->get(\AssetsHelper::class);
+        $this->renderer = $container->get(Renderer::class);
+        $this->modx = $container->get(\DocumentParser::class);
+
+        $this->lexicon = $container->get(Lexicon::class);
+        $this->orderProcessor = ci()->get('commerce')->loadProcessor();
+
+        $this->ratesCalculator = $container->get(RatesCalculator::class);
+        $this->cache = $container->get(Cache::class);
+
+
+
+
+
+
+
     }
 
     public function handle(&$params){
 
+        $this->registerScripts();
+
+        $shipment = ShipmentBuilder::makeFromFrontRequest();
+
+
+        $markup = '';
+        if ($this->getCurrentDelivery($params) == $this->deliveryMethodKey) {
+            $markup = $this->getMarkup($shipment);
+        }
+
+
+
+        $params['rows'][$this->deliveryMethodKey] = [
+            'title' => $this->config->getCFGDef('title', $this->lexicon->get('title')),
+            'markup' => $markup,
+        ];
+    }
+
+    private function getMarkup(Shipment $shipment)
+    {
+        $errors = [];
+        $rates = [];
+
+        $destinationAddress = $shipment->getDestinationAddress();
+
+
+        $states = [];
+        if ($destinationAddress['fields']['country'] && $destinationAddress['requireState']) {
+            $states = $this->stateRepository->getCountryStates($destinationAddress['fields']['country']);
+        }
+
+        $ratesRequestHash = '';
+
+
+
+        if ($destinationAddress['full']) {
+            try {
+                $rates = $this->getRates($shipment);
+            }
+            catch (Exception $e){
+                $errors[] = $e->getMessage();
+            }
+        }
+
+
+
+        $markupData = [
+            'ratesRequestHash' => $ratesRequestHash,
+
+            'countries' => $this->countryRepository->all(),
+            'states' => $states,
+
+            'request' => $_REQUEST,
+
+            'errors' => $errors,
+            'rates' => $rates,
+
+        ];
+
+        $this->modx->invokeEvent('OnCommerceDeliveryGoshippoBeforeMarkupRender',[
+            'data'=>&$markupData,
+        ]);
+
+
+        $markup = $this->renderer->render($this->config->getCFGDef('markup_template'), $markupData);
+        return  $this->lexicon->parse($markup);
+    }
+
+    private function registerScripts()
+    {
         $scripts = '';
 
         if ($this->config->getCFGDef('loadCss')) {
@@ -90,79 +186,36 @@ class OnRegisterDeliveryAction
         }
 
         $this->modx->regClientHTMLBlock($scripts);
-
-
-        $price = 0;
-        $markup = $this->getMarkup();
-
-
-
-
-        $params['rows'][$this->deliveryMethodKey] = [
-            'title' => $this->config->getCFGDef('title', $this->lexicon->get('title')),
-            'markup' => $markup,
-            'price' => $price,
-        ];
     }
 
-    private function getMarkup()
+    private function getRates(Shipment $shipmentDto)
     {
-        $errors = [];
-        $rates = [];
 
-        $currentDelivery = $this->ordersProcessor->getCurrentDelivery();
 
-        if (is_null($currentDelivery) && empty($params['rows'])) {
-            $currentDelivery = $this->deliveryMethodKey;
+        $ratesHash = $shipmentDto->getHash();
+
+
+        if($this->cache->has($ratesHash)){
+            $rates = $this->cache->get($ratesHash);
+        }
+        else{
+            $rates = $this->ratesCalculator->calculator($shipmentDto);
+
+            $this->cache->set($ratesHash,$rates);
         }
 
-        if ($currentDelivery != $this->deliveryMethodKey) {
-            return '';
+        return $rates;
+    }
+
+    private function getCurrentDelivery($params)
+    {
+        $currentDelivery = $this->orderProcessor->getCurrentDelivery();
+
+        if (is_null($currentDelivery) && !is_null($params) &&  empty($params['rows'])) {
+            $currentDelivery = $this->config->getCFGDef('deliveryMethodKey');
         }
-        $countries = $this->countryRepository->all();
-        $selectedCountry = $this->addressRequest->getSelectedCountry();
+        return $currentDelivery;
 
-        $states = [];
-        if ($selectedCountry && $selectedCountry['require_state']) {
-            $states = $this->stateRepository->getCountryStates($selectedCountry['iso']);
-        }
-
-        $selectedState = $this->addressRequest->getSelectedState();
-
-
-        $ratesRequestHash = '';
-
-
-        if ($this->addressRequest->isFullAddress()) {
-
-            $ratesRequestHash = $this->addressRequest->getRateRequestHash();
-
-
-            try {
-                $rates = $this->addressRequest->getRates();
-            } catch (Exception $e) {
-                $errors[] = $e->getMessage();
-            }
-        }
-
-
-        $markupData = [
-            'ratesRequestHash' => $ratesRequestHash,
-            'countries' => $countries,
-            'selectedCountry' => $selectedCountry,
-
-            'states' => $states,
-            'selectedState' => $selectedState,
-            'request' => $_REQUEST,
-
-            'errors' => $errors,
-            'rates' => $rates,
-
-        ];
-
-
-        $markup = $this->renderer->render('markup.php', $markupData);
-        return  $this->lexicon->parse($markup);
     }
 
 }

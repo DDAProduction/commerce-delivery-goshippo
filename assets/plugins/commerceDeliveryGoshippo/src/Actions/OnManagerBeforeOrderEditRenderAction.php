@@ -4,9 +4,11 @@
 namespace CommerceDeliveryGoshippo\Actions;
 
 
+use CommerceDeliveryGoshippo\Container;
 use CommerceDeliveryGoshippo\Renderer;
 use CommerceDeliveryGoshippo\Repositories\CountryRepository;
 use CommerceDeliveryGoshippo\Repositories\StateRepository;
+use Helpers\Config;
 use Helpers\Lexicon;
 
 class OnManagerBeforeOrderEditRenderAction
@@ -25,13 +27,13 @@ class OnManagerBeforeOrderEditRenderAction
     private $renderer;
     private $showOnlyCountries;
 
-    public function __construct(Lexicon $lexicon,\DocumentParser $modx,Renderer $renderer,$showOnlyCountries)
+    public function __construct(Container $container)
     {
 
-        $this->lexicon = $lexicon;
-        $this->modx = $modx;
-        $this->renderer = $renderer;
-        $this->showOnlyCountries = $showOnlyCountries;
+        $this->lexicon = $container->get(Lexicon::class);
+        $this->modx = $container->get(\DocumentParser::class);
+        $this->renderer = $container->get(Renderer::class);
+        $this->showOnlyCountries = $container->get(Config::class)->getCFGDef('showOnlyCountries');
     }
 
     public function handle(&$params){
@@ -128,16 +130,11 @@ class OnManagerBeforeOrderEditRenderAction
             'content' => function ($data) use ($render) {
 
                 $rates = [];
-
                 $selectedRate = null;
 
-                if ($data['fields']['goshippo']['rate']) {
-
-                    $rate = json_decode($data['fields']['goshippo']['rate'],true);
-
+                if ($data['order']['fields']['delivery_goshippo_rate']) {
+                    $rate = json_decode($data['order']['fields']['delivery_goshippo_rate'],true);
                     $rates[] = $rate;
-                    $selectedRate = $rate;
-
                 }
 
                 return $render->render('module/rate.php', [

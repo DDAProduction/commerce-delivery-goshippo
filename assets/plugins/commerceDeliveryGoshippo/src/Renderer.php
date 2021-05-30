@@ -31,6 +31,9 @@ class Renderer
         $this->lexicon = $lexicon;
     }
 
+    public function parseChunk($template, array $data = []){
+        return $this->render($template,$data);
+    }
 
 
     public function render($template, array $data = [])

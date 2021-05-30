@@ -5,7 +5,10 @@ namespace CommerceDeliveryGoshippo\Actions;
 
 
 use Commerce\Processors\OrdersProcessor;
-use CommerceDeliveryGoshippo\Services\AddressRequest;
+use CommerceDeliveryGoshippo\Container;
+use CommerceDeliveryGoshippo\Factories\ShipmentBuilder;
+use CommerceDeliveryGoshippo\Services\OldAddressRequest;
+use CommerceDeliveryGoshippo\Shipment;
 use Helpers\Config;
 use Helpers\Lexicon;
 
@@ -17,7 +20,7 @@ class OnCollectSubtotalsAction
      */
     private $ordersProcessor;
     /**
-     * @var AddressRequest
+     * @var OldAddressRequest
      */
     private $addressRequest;
     /**
@@ -29,18 +32,23 @@ class OnCollectSubtotalsAction
      */
     private $config;
 
-    public function __construct($deliveryMethodKey, OrdersProcessor $ordersProcessor, AddressRequest $addressRequest, Lexicon $lexicon, Config $config)
+    public function __construct(Container $container)
     {
-        $this->deliveryMethodKey = $deliveryMethodKey;
-        $this->ordersProcessor = $ordersProcessor;
-        $this->addressRequest = $addressRequest;
-        $this->lexicon = $lexicon;
-        $this->config = $config;
+        $this->config = $container->get(Config::class);
+        $this->lexicon = $container->get(Lexicon::class);
+
+        $this->deliveryMethodKey = $this->config->getCFGDef('deliveryMethodKey');
+        $this->ordersProcessor = ci()->commerce->loadProcessor();
+
     }
 
     public function handle(&$params){
         $currentDelivery = $this->ordersProcessor->getCurrentDelivery();
-        $selectedRate = $this->addressRequest->getSelectedRate();
+
+        $Shipment = ShipmentBuilder::makeFromFrontRequest();
+
+
+        $selectedRate = $Shipment->getRate();
 
 
         if($selectedRate && $currentDelivery == $this->deliveryMethodKey) {
@@ -54,8 +62,6 @@ class OnCollectSubtotalsAction
             'title' => $this->lexicon->get('subtotal_title'),
             'price' => $deliveryPrice,
         ];
-
-
 
     }
 

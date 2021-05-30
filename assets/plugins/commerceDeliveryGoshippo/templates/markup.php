@@ -1,3 +1,7 @@
+<?php
+    /** @var $countries array */
+    /** @var $request array */
+?>
 <div id="goshippo_markup">
     <? if(!empty($errors)): ?>
         <div class="goshippo_errors">
@@ -13,7 +17,7 @@
         <select name="delivery_goshippo_country" id="delivery_goshippo_country" class="delivery_goshippo_country <?= count($countries) === 1?'goshippo-hide':'' ?>">
             <option value="">[%select_country%]</option>
             <?php foreach ($countries as $iso => $country): ?>
-                <option data-state="<?= $country['require_state'] ?>" <?= $selectedCountry['iso'] == $iso ? 'selected':'' ?> value="<?= $iso?>"><?= $country['title'] ?></option>
+                <option data-state="<?= $country['require_state'] ?>" <?= $request['delivery_goshippo_country'] == $iso ? 'selected':'' ?> value="<?= $iso?>"><?= $country['title'] ?></option>
             <?php endforeach; ?>
         </select>
         [+delivery_goshippo_country.error+]
@@ -24,7 +28,7 @@
         <select name="delivery_goshippo_state" id="delivery_goshippo_state" class="delivery_goshippo_state">
             <option value="">[%select_state%]</option>
             <?php foreach ($states as $state): ?>
-                <option  <?= $selectedState['iso'] == $state['iso'] ? 'selected':'' ?> value="<?= $state['iso']?>"><?= $state['title'] ?></option>
+                <option  <?= $request['delivery_goshippo_state'] == $state['iso'] ? 'selected':'' ?> value="<?= $state['iso']?>"><?= $state['title'] ?></option>
             <?php endforeach; ?>
         </select>
         [+delivery_goshippo_state.error+]
@@ -50,14 +54,14 @@
     </div>
     <? if(!empty($rates)): ?>
     <div class="rates_owner">
-        <select name="delivery_goshippo_rate" id="delivery_goshippo_rate">
+        <select name="delivery_goshippo_rate_id" id="delivery_goshippo_rate">
             <option value="">[%select_rate%]</option>
             <?php foreach ($rates as $rate): ?>
-                <option  <?= $rate['object_id'] == $request['delivery_goshippo_rate'] ? 'selected':'' ?> value="<?= $rate['object_id']?>"><?= $rate['title'] ?></option>
+                <option  <?= $rate['object_id'] == $request['delivery_goshippo_rate_id'] ? 'selected':'' ?> value="<?= $rate['object_id']?>"><?= $rate['title'] ?></option>
             <?php endforeach; ?>
 
         </select>
-        [+delivery_goshippo_rate.error+]
+        [+delivery_goshippo_rate_id.error+]
     </div>
     <?endif; ?>
 </div>

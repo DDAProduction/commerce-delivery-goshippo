@@ -4,8 +4,14 @@
 namespace CommerceDeliveryGoshippo\Actions;
 
 
+use Commerce\Commerce;
 use Commerce\Processors\OrdersProcessor;
+use CommerceDeliveryGoshippo\Container;
+use CommerceDeliveryGoshippo\Factories\ShipmentBuilder;
+use CommerceDeliveryGoshippo\Services\FrontDestinationAddressGetter;
 use CommerceDeliveryGoshippo\Repositories\CountryRepository;
+use CommerceDeliveryGoshippo\Shipment;
+use Helpers\Config;
 use Helpers\Lexicon;
 
 class OnInitializeOrderFormAction
@@ -14,29 +20,35 @@ class OnInitializeOrderFormAction
      * @var OrdersProcessor
      */
     private $ordersProcessor;
-    /**
-     * @var CountryRepository
-     */
-    private $countryRepository;
+
     /**
      * @var Lexicon
      */
     private $lexicon;
     private $deliveryMethodKey;
 
-    public function __construct($deliveryMethodKey, OrdersProcessor $ordersProcessor, CountryRepository $countryRepository, Lexicon $lexicon)
+    /**
+     * @var array
+     */
+    private $address;
+
+    public function __construct(Container $container)
     {
 
-        $this->ordersProcessor = $ordersProcessor;
-        $this->countryRepository = $countryRepository;
-        $this->lexicon = $lexicon;
-        $this->deliveryMethodKey = $deliveryMethodKey;
+        $this->ordersProcessor = $container->get(Commerce::class)->loadProcessor();
+
+        $this->lexicon = $container->get(Lexicon::class);
+        $this->deliveryMethodKey = $container->get(Config::class)->getCFGDef('deliveryMethodKey');
+
+
+
     }
 
     public function handle(&$params)
     {
+        $Shipment = ShipmentBuilder::makeFromFrontRequest();
+
         $currentDelivery = $this->ordersProcessor->getCurrentDelivery();
-        $selectedCountry = $this->countryRepository->getSelectedCountryFromRequest();
 
 
         if ($currentDelivery != $this->deliveryMethodKey) {
@@ -55,12 +67,12 @@ class OnInitializeOrderFormAction
             'delivery_goshippo_street' => [
                 'required' => $this->lexicon->get('fill_street'),
             ],
-            'delivery_goshippo_rate' => [
+            'delivery_goshippo_rate_id' => [
                 'required' => $this->lexicon->get('select_rate'),
             ],
 
         ];
-        if ($selectedCountry['require_state']) {
+        if ($Shipment->getDestinationAddress()['requireState']) {
             $rules['delivery_goshippo_state'] = [
                 'required' => $this->lexicon->get('select_state')
             ];

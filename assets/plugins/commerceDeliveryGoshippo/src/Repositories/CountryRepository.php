@@ -66,8 +66,14 @@ class CountryRepository
             $selectedCountry = $countries[key($countries)];
         }
 
-
         return $selectedCountry;
+    }
+
+    public function     requireState($countryIso){
+        $eCountryIso = $this->modx->db->escape($countryIso);
+
+        $sql  = "select `require_state`  from $this->table where `iso` = '$eCountryIso'";
+        return $this->modx->db->getValue($this->modx->db->query($sql));
     }
 
 

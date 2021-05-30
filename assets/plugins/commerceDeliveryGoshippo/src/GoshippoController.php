@@ -1,77 +1,62 @@
 <?php
+
 namespace CommerceDeliveryGoshippo;
 
 
-use Commerce\Commerce;
-use Commerce\Module\Controllers\Controller;
-use Commerce\Processors\OrdersProcessor;
-use Shippo_Transaction;
+use CommerceDeliveryGoshippo\Factories\ShipmentBuilder;
+use CommerceDeliveryGoshippo\Repositories\StateRepository;
+use CommerceDeliveryGoshippo\Services\RatesCalculator;
+use Helpers\Config;
+use Helpers\Lexicon;
 
-class GoshippoController extends Controller implements \Commerce\Module\Interfaces\Controller
+class GoshippoController
 {
-    private $commerce;
-    /** @var $orderProcessor OrdersProcessor */
-    private $orderProcessor;
+
     /**
-     * @var \Helpers\Lexicon
+     * @var \DocumentParser|false|mixed
+     */
+    private $modx;
+    /**
+     * @var false|Lexicon|mixed
      */
     private $lexicon;
+    /**
+     * @var StateRepository
+     */
+    private $stateRepository;
+    /**
+     * @var RatesCalculator|false|mixed
+     */
+    private $ratesCalculator;
 
-    public function __construct($modx, $module)
+    public function __construct(Container $container)
     {
-        parent::__construct($modx, $module);
+        $this->modx = $container->get(\DocumentParser::class);
+        $this->lexicon = $container->get(Lexicon::class);
 
-        /** @var Commerce $commerce */
-        $this->commerce = $this->modx->commerce;
-        $this->orderProcessor = $this->commerce->loadProcessor();
-        $this->lexicon =\CommerceDeliveryGoshippo\Factories\LexiconFactory::build();
+        $this->stateRepository = new StateRepository($this->modx, $this->lexicon->get('lang_code'));
+        $this->ratesCalculator = $container->get(RatesCalculator::class);
     }
 
-    public function index()
+
+
+    public function states($request)
     {
 
-        $this->orderProcessor->loadOrder($_GET['order_id']);
-        $order = $this->orderProcessor->getOrder();
+        return [
+            'states'=>$this->stateRepository->getCountryStates($request['country'])
+        ];
+    }
 
-        $rate = json_decode($order['fields']['goshippo']['rate'],true);
-        if(empty($rate)){
-            $this->module->sendRedirectBack(['error' => $this->lexicon->get('select_rate')]);
-        }
-
-
-        try {
-
-            $transaction = Shippo_Transaction::create([
-                'rate' => $rate['object_id'],
-                'label_file_type' => "PDF",
-                'async' => false
-            ])->__toArray(true);
+    public function ratesCalculate()
+    {
+        $shipment = ShipmentBuilder::makeFromBackendRequest();
+        $rates = $this->ratesCalculator->calculator($shipment);
 
 
-            if ($transaction["status"] != "SUCCESS") {
-                throw new \Exception('<pre>'.print_r($transaction["messages"],true).'</pre>');
-            }
-
-            $order['fields']['goshippo']['transaction'] = $transaction;
-            $this->orderProcessor->updateOrder($order['id'],['values'=>$order]);
-            $this->modx->logEvent(1, 1, 'Goshippo create success <br>' . print_r($transaction, true), 'Goshippo');
-            $this->module->sendRedirectBack(['success' => $this->lexicon->get('invoice_create')]);
-
-        }
-        catch (\Exception $e){
-
-            $this->modx->logEvent(1, 3, $e->getMessage(), 'Goshippo');
-            $this->module->sendRedirectBack(['error' => $e->getMessage()]);
-
-        }
-
-
-
-
-
-
-
-
+        return [
+            'rates' => $rates
+        ];
 
     }
 }

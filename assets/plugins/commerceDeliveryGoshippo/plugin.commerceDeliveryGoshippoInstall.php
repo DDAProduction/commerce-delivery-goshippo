@@ -380,9 +380,35 @@ foreach ($countries as $iso => $countryTitle) {
 
 
     }
-
-
 }
+
+$events = [
+    'OnCommerceDeliveryGoshippoBeforeMarkupRender',
+    'OnCommerceDeliveryGoshippoAddressReceived',
+    'OnCommerceDeliveryGoshippoParcelsCalculate',
+    'OnCommerceDeliveryGoshippoRatesCalculate',
+    'OnCommerceDeliveryGoshippoInvoiceCreate',
+    'OnCommerceDeliveryGoshippoInvoiceCreate',
+
+];
+
+$query  = $modx->db->select('*', $tableEventnames, "`groupname` = 'CommerceDeliveryGoshippo'");
+$exists = [];
+
+while ($row = $modx->db->getRow($query)) {
+    $exists[$row['name']] = $row['id'];
+}
+
+foreach ($events as $event) {
+    if (!isset($exists[$event])) {
+        $modx->db->insert([
+            'name'      => $event,
+            'service'   => 7,
+            'groupname' => 'CommerceDeliveryGoshippo',
+        ], $tableEventnames);
+    }
+}
+
 
 
 // remove installer

@@ -1,173 +1,198 @@
-var $ = jQuery;
-    let goshippoFieldChangeTimer;
+var goshippo = {
+    goshippoFieldChangeTimer: null,
+    fullNameFieldName: null,
+    deliveryMethodKey: null,
+    rates: [],
 
-    let fullNameFieldName = goshippoConfig.fullNameField;
+    init: function () {
+        let $ = jQuery;
+        this.fullNameFieldName = goshippoConfig.fullNameField;
+        this.deliveryMethodKey = goshippoConfig.deliveryMethodKey;
 
-    var rates = [];
 
+        $(document).on('change', '#delivery_goshippo_rate_id', () => {
+            var rateId = $('#delivery_goshippo_rate_id').val();
 
-    $(document).on('change','#delivery_goshippo_rate',function () {
+            console.log(rateId);
 
-        var rateId =  $(this).val();
+            for (var i = 0; i < this.rates.length; i++) {
 
-        for(var i = 0;i<rates.length;i++){
-
-            if(rateId == rates[i]['object_id']){
-                $('#delivery_goshippo_rate_full').val(JSON.stringify(rates[i]))
+                if (rateId == this.rates[i]['object_id']) {
+                    $('#delivery_goshippo_rate').val(JSON.stringify(this.rates[i]));
+                }
             }
+        });
 
-        }
+        $(document).ready(() => this.updateStateVisibility());
 
-    });
+        $(document).ready(() => this.updateFieldsVisibility());
+        $(document).on('change', '[name="order[fields][delivery_method]"]', () => this.updateFieldsVisibility());
 
 
+        $(document).on('click', '#update-rates', () => {
+            this.goshippoUpdateRates(true);
+        });
+        $(document).on('change', '#delivery_goshippo_country', () => {
+            var $option = $('#delivery_goshippo_country option:selected');
+
+            this.updateStateVisibility();
+
+            var country = $('#delivery_goshippo_country').val();
+
+            $('#delivery_goshippo_state option:gt(0)').remove();
+
+            if (parseInt($option.data('state')) === 1) {
+
+                $.post('/ajax/commerce/delivery/goshippo/states', {
+                    country: country
+                }, function (response) {
+
+                    for (var i = 0; i < response.states.length; i++) {
+                        var item = response.states[i];
+                        $('#delivery_goshippo_state').append($('<option></option>').val(item['iso']).text(item['title']))
+                    }
+
+                })
+            }
+        });
+
+        $(document)
+            .on('keyup', '#order_form [name="' + this.fullNameFieldName + '"]', () => this.goshippoUpdateRates())
+            .on('change', '#delivery_goshippo_country', () => this.goshippoUpdateRates())
+            .on('change', '#delivery_goshippo_state', () => this.goshippoUpdateRates())
+
+            .on('keyup', '#delivery_goshippo_zip', () => this.goshippoUpdateRates())
+            .on('keyup', '#delivery_goshippo_city', () => this.goshippoUpdateRates())
+            .on('keyup', '#delivery_goshippo_street', () => this.goshippoUpdateRates())
+        ;
 
 
-    function canRequestRates() {
-        let fullNameFieldName = goshippoConfig.fullNameField;
+    },
+    canRequestRates: function () {
+        let $ = jQuery;
+
+        let fullNameFieldName = this.fullNameFieldName;
         let deliveryMethod = $('#order_form [name="order[fields][delivery_method]"]').val();
 
         let $countryOption = $('#delivery_goshippo_country option:selected');
 
-        let name = $('#order_form [name="'+fullNameFieldName+'"]').val();
+        let name = $('#order_form [name="' + fullNameFieldName + '"]').val();
 
-        let country =  $countryOption.val();
-        let state =  $('#delivery_goshippo_state').val();
-        let requireState =  parseInt($countryOption.data('state'));
+        let country = $countryOption.val();
+        let state = $('#delivery_goshippo_state').val();
+        let requireState = parseInt($countryOption.data('state'));
 
-        let zip =  $('#delivery_goshippo_zip').val();
-        let city =  $('#delivery_goshippo_city').val();
-        let street =  $('#delivery_goshippo_street').val();
-
-
+        let zip = $('#delivery_goshippo_zip').val();
+        let city = $('#delivery_goshippo_city').val();
+        let street = $('#delivery_goshippo_street').val();
 
 
-        var result =  deliveryMethod === goshippoConfig.deliveryMethodKey && name && country && (requireState === 0 || state) && zip && city && street;
-        debugger;
+        var result = deliveryMethod === this.deliveryMethodKey && name && country && (requireState === 0 || state) && zip && city && street;
+
         return result;
-    }
-
-
-
-    function goshippoUpdateRates() {
-
-         if(!canRequestRates()){
+    },
+    goshippoUpdateRates: function (immediately) {
+        let $ = jQuery;
+        if (!this.canRequestRates()) {
             console.log('can not requestRates');
             return;
         }
 
-        clearTimeout(goshippoFieldChangeTimer);
-        goshippoFieldChangeTimer = setTimeout(function () {
+        let timer = !immediately ? 1000 : 0;
 
-            $('[data-delivery="goshippo"]').prop('readonly',true)
-            $('#delivery_goshippo_rate option:gt(0)').remove();
+
+        clearTimeout(this.goshippoFieldChangeTimer);
+        this.goshippoFieldChangeTimer = setTimeout(() => {
+
+            $('[data-delivery="goshippo"]').prop('readonly', true)
+            $('#delivery_goshippo_rate_id option:gt(0)').remove();
 
             var cart = [];
 
 
-            $('#products tr').each(function (ind,elem) {
+            $('#products tr').each(function (ind, elem) {
 
                 var iteration = ind + 1;
 
-
                 cart.push({
-                    id:$('[name="order[cart]['+iteration+'][id]"]').val(),
-                    count:$('[name="order[cart]['+iteration+'][count]"]').val(),
+                    id: $('[name="order[cart][' + iteration + '][id]"]').val(),
+                    count: $('[name="order[cart][' + iteration + '][count]"]').val(),
                 })
 
             })
 
-            rates = [];
+            this.rates = [];
 
 
-            $.post('/ajax/commerce/delivery/goshippo/rates-calculate',{
-                name:$('#order_form [name="'+fullNameFieldName+'"]').val(),
+            $.post('/ajax/commerce/delivery/goshippo/rates-calculate', {
+                name: $('#order_form [name="' + this.fullNameFieldName + '"]').val(),
                 delivery_goshippo_country: $('#delivery_goshippo_country').val(),
                 delivery_goshippo_state: $('#delivery_goshippo_state').val(),
                 delivery_goshippo_zip: $('#delivery_goshippo_zip').val(),
                 delivery_goshippo_city: $('#delivery_goshippo_city').val(),
                 delivery_goshippo_street: $('#delivery_goshippo_street').val(),
-                cart:cart
+                cart: cart
 
-            },function (response) {
+            }, (response) => {
+                if (response.status) {
 
+                    console.log(this)
 
-                if(response.status){
+                    this.rates = response.rates;
 
-                    rates = response.rates;
-
-                    for(var i=0;i<rates.length;i++){
+                    for (var i = 0; i < response.rates.length; i++) {
                         var rate = response.rates[i];
-                        $('#delivery_goshippo_rate').append($('<option></option>').val(rate.object_id).text(rate.title))
+                        $('#delivery_goshippo_rate_id').append($('<option></option>').val(rate.object_id).text(rate.title))
                     }
-                }
-                else{
+                } else {
                     alert(response.message)
                 }
 
-                $('[data-delivery="goshippo"]').prop('readonly',false);
+                $('[data-delivery="goshippo"]').prop('readonly', false);
 
             })
 
 
-            //Commerce.updateOrderData(document.querySelector('[data-commerce-order]'))
-        },1000)
-    }
+        }, timer);
+    },
 
-    $(document)
-        .on('keyup','#order_form [name="'+fullNameFieldName+'"]',goshippoUpdateRates)
-        .on('change','#delivery_goshippo_country',goshippoUpdateRates)
-        .on('change','#delivery_goshippo_state',goshippoUpdateRates)
+    updateStateVisibility: function () {
+        let $ = jQuery;
 
-        .on('keyup','#delivery_goshippo_zip',goshippoUpdateRates)
-        .on('keyup','#delivery_goshippo_city',goshippoUpdateRates)
-        .on('keyup','#delivery_goshippo_street',goshippoUpdateRates)
-    ;
-
-    function updateStateVisibility() {
+        var deliveryMethod = $('#delivery_goshippo_country').val();
+        if (deliveryMethod !== this.deliveryMethodKey) {
+            return;
+        }
         var $option = $('#delivery_goshippo_country option:selected');
 
         var $tr = $("#delivery_goshippo_state").closest('tr');
 
 
-        if(parseInt($option.data('state')) === 1){
+        if (parseInt($option.data('state')) === 1) {
             $tr.show();
-        }
-
-        else {
+        } else {
             $tr.hide();
         }
-    }
+    },
+    updateFieldsVisibility: function () {
+        let $ = jQuery;
+        var deliveryMethod = $('[name="order[fields][delivery_method]"]').val();
 
-    $(document).ready(updateStateVisibility);
+        console.log(deliveryMethod)
+        console.log(this.deliveryMethodKey)
 
-
-    $(document).on('click','#update-rates',function () {
-
-        goshippoUpdateRates();
-    });
-    $(document).on('change','#delivery_goshippo_country',function () {
-        var $option = $('#delivery_goshippo_country option:selected');
-
-        updateStateVisibility();
-
-        var country = $(this).val();
-
-        $('#delivery_goshippo_state option:gt(0)').remove();
-
-        if(parseInt($option.data('state')) === 1){
-
-            $.post('/ajax/commerce/delivery/goshippo/states',{
-                country:country
-            },function (response) {
-
-                for(var i = 0;i < response.length;i++){
-                    var item = response[i];
-                    $('#delivery_goshippo_state').append($('<option></option>').val(item['iso']).text(item['title']))
-                }
-
-            })
+        if (deliveryMethod === this.deliveryMethodKey) {
+            $('[data-delivery="goshippo"]').closest('tr').show();
+        } else {
+            $('[data-delivery="goshippo"]').closest('tr').hide();
         }
-    });
+    },
+
+
+};
+
+goshippo.init();
+
+
 
 

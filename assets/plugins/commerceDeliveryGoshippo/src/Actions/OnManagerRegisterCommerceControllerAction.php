@@ -5,7 +5,8 @@ namespace CommerceDeliveryGoshippo\Actions;
 
 
 use Commerce\Module\Manager;
-use CommerceDeliveryGoshippo\GoshippoController;
+use CommerceDeliveryGoshippo\Container;
+use CommerceDeliveryGoshippo\GoshippoModuleController;
 
 class OnManagerRegisterCommerceControllerAction
 {
@@ -14,10 +15,10 @@ class OnManagerRegisterCommerceControllerAction
      */
     private $modx;
 
-    public function __construct(\DocumentParser $modx)
+    public function __construct(Container $container)
     {
 
-        $this->modx = $modx;
+        $this->modx = $container->get(\DocumentParser::class);
     }
 
     public function handle(&$params){
@@ -25,6 +26,6 @@ class OnManagerRegisterCommerceControllerAction
         /** @var Manager $module */
         $module = $params['module'];
 
-        $module->registerController('goshippo',new GoshippoController($this->modx, $module));
+        $module->registerController('goshippo',new GoshippoModuleController($this->modx, $module));
     }
 }

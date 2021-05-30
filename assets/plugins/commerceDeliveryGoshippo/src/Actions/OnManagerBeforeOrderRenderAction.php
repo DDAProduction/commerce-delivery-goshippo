@@ -4,6 +4,7 @@
 namespace CommerceDeliveryGoshippo\Actions;
 
 
+use CommerceDeliveryGoshippo\Container;
 use Helpers\Config;
 use Helpers\Lexicon;
 
@@ -18,10 +19,10 @@ class OnManagerBeforeOrderRenderAction
      */
     private $config;
 
-    public function __construct(Lexicon $lexicon, Config $config)
+    public function __construct(Container $container)
     {
-        $this->lexicon = $lexicon;
-        $this->config = $config;
+        $this->lexicon = $container->get(Lexicon::class);
+        $this->config = $container->get(Config::class);
     }
 
     public function handle(&$params)
@@ -34,11 +35,12 @@ class OnManagerBeforeOrderRenderAction
         ) {
 
 
-            if (!empty($params['order']['fields']['goshippo']['transaction']['label_url'])) {
+            if (!empty($params['order']['fields']['delivery_goshippo_transaction']['label_url'])) {
+
                 $params['groups']['payment_delivery']['fields']['label_url'] = [
                     'title' => $this->lexicon->get('label_url'),
                     'content' => function ($data) {
-                        return '<a target="_blank" href=' . $data['fields']['goshippo']['transaction']['label_url'] . '>Follow</a>';
+                        return '<a target="_blank" href=' . $data['fields']['delivery_goshippo_transaction']['label_url'] . '>Follow</a>';
                     },
                     'sort' => 21,
                 ];
@@ -48,7 +50,7 @@ class OnManagerBeforeOrderRenderAction
                     'content' => function ($data) {
 
 
-                        return $data['fields']['goshippo']['transaction']['tracking_number'];
+                        return $data['fields']['delivery_goshippo_transaction']['tracking_number'];
                     },
                     'sort' => 22,
                 ];
@@ -56,7 +58,7 @@ class OnManagerBeforeOrderRenderAction
                 $params['groups']['payment_delivery']['fields']['tracking_url_provider'] = [
                     'title' => $this->lexicon->get('tracking_url_provider'),
                     'content' => function ($data) {
-                        return '<a target="_blank" href=' . $data['fields']['goshippo']['transaction']['tracking_url_provider'] . '>Follow</a>';
+                        return '<a target="_blank" href=' . $data['fields']['delivery_goshippo_transaction']['tracking_url_provider'] . '>Follow</a>';
                     },
                     'sort' => 23,
                 ];
@@ -65,7 +67,7 @@ class OnManagerBeforeOrderRenderAction
 
 
 
-            elseif  (!empty($params['order']['fields']['goshippo']['rate'])) {
+            elseif  (!empty($params['order']['fields']['delivery_goshippo_rate'])) {
                 $params['groups']['payment_delivery']['fields']['goshippo_create_invoice'] = [
                     'title' => $this->lexicon->get('invoice'),
                     'content' => function ($data) {

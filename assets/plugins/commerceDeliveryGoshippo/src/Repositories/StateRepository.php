@@ -25,6 +25,7 @@ class StateRepository
 
     public function getCountryStates($countryIso){
 
+
         $eCountryIso = $this->modx->db->escape($countryIso);
         $sql  = "select `iso`, `title_$this->langCode` as `title` from $this->table  where `country_iso` = '$eCountryIso' order by `title_$this->langCode` asc";
 

@@ -11,9 +11,11 @@ class Cache
      */
     private $fs;
     private $cacheDir = 'assets/cache/goshippo/';
-    public function __construct()
+    private $storageTime = 604800;
+
+    public function __construct(Container $ci)
     {
-        $this->fs = FS::getInstance();
+        $this->fs = $ci->get(FS::class);
 
         $this->createCacheDirIfNotExistst();
 
@@ -47,5 +49,17 @@ class Cache
         if(!file_exists(MODX_BASE_PATH.$this->cacheDir)){
             $this->fs->makeDir(MODX_BASE_PATH.$this->cacheDir);
         }
+    }
+
+    public function clearOldCache(){
+        $time = time();
+        foreach (glob(MODX_BASE_PATH.$this->cacheDir.'*') as $file){
+            $fileTime = filemtime($file);
+            if($time-$fileTime > $this->storageTime){
+                unlink($file);
+            }
+        }
+
+        return 'Cleared';
     }
 }
