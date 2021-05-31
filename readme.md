@@ -1,12 +1,3 @@
 # Commerce GoShippo
 
-## Install
-1. Add dependency ```shippo/shippo-php```
-2. Get GoShippo token
-3. Fill configuration
-4. Make sure plugin call after commerce
-
-
-## Opportunities
-1. Add delivery method GoShippo.
-2. Automatically generate shipment 
+Documentation https://github.com/evolution-cms/docs/tree/master/ru/04_%D0%9A%D0%BE%D0%BC%D0%BF%D0%BE%D0%BD%D0%B5%D0%BD%D1%82%D1%8B/CommerceDeliveryGoshippo

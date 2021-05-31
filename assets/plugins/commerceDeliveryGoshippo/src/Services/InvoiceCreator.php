@@ -33,7 +33,7 @@ class InvoiceCreator
             'async' => false
         ];
 
-        $this->modx->invokeEvent('OnCommerceDeliveryGoshippoInvoiceCreate',[
+        $this->modx->invokeEvent('OnCommerceDeliveryGoshippoBeforeInvoiceCreate',[
             'order'=>$order,
             'rate'=>$rate,
             'request_params'=>&$requestParams,

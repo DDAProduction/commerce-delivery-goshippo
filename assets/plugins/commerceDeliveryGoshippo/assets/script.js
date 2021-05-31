@@ -17,6 +17,9 @@ var goshippo = {
             var country = $(this).val();
 
 
+            let requireState = $option.data('state');
+
+            debugger;
             if (parseInt($option.data('state')) === 1) {
                 $("#delivery_goshippo_state_owner").show();
 
@@ -37,13 +40,13 @@ var goshippo = {
 
         })
         $(document)
-            .on('keyup', '[data-commerce-order] [' + this.fullNameFieldName + ']', this.goshippoFieldChange)
-            .on('change', '#delivery_goshippo_country', this.goshippoFieldChange)
-            .on('change', '#delivery_goshippo_state', this.goshippoFieldChange)
+            .on('keyup', '[data-commerce-order] [' + this.fullNameFieldName + ']', () => this.goshippoFieldChange())
+            .on('change', '#delivery_goshippo_country', () => this.goshippoFieldChange())
+            .on('change', '#delivery_goshippo_state', () => this.goshippoFieldChange())
 
-            .on('keyup', '#delivery_goshippo_zip', this.goshippoFieldChange)
-            .on('keyup', '#delivery_goshippo_city', this.goshippoFieldChange)
-            .on('keyup', '#delivery_goshippo_street', this.goshippoFieldChange)
+            .on('keyup', '#delivery_goshippo_zip', () => this.goshippoFieldChange())
+            .on('keyup', '#delivery_goshippo_city', () => this.goshippoFieldChange())
+            .on('keyup', '#delivery_goshippo_street', () => this.goshippoFieldChange())
         ;
 
 
@@ -87,9 +90,4 @@ var goshippo = {
     }
 
 };
-(function () {
-
-
-
-
-})()
+goshippo.init()

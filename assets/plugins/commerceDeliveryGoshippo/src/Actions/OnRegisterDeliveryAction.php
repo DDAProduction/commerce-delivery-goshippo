@@ -130,11 +130,11 @@ class OnRegisterDeliveryAction
         $ratesRequestHash = '';
 
 
-
         if ($destinationAddress['full']) {
             try {
                 $rates = $this->getRates($shipment);
             }
+
             catch (Exception $e){
                 $errors[] = $e->getMessage();
             }
@@ -190,8 +190,6 @@ class OnRegisterDeliveryAction
 
     private function getRates(Shipment $shipmentDto)
     {
-
-
         $ratesHash = $shipmentDto->getHash();
 
 

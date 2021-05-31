@@ -1,4 +1,4 @@
-<input type="text" id="delivery_goshippo_rate" name="order[fields][delivery_goshippo_rate]" value="<?= htmlentities(json_encode($selectedRate))?>">
+<input type="hidden" id="delivery_goshippo_rate" name="order[fields][delivery_goshippo_rate]" value="<?= htmlentities(json_encode($selectedRate))?>">
 
 
 

@@ -355,44 +355,47 @@ $states = [
     ]
 ];
 
+if($modx->db->getRecordCount($modx->db->select('*',$countryTable)) === 0){
 
-foreach ($countries as $iso => $countryTitle) {
+    foreach ($countries as $iso => $countryTitle) {
 
-    $countryStates = isset($states[$iso])?$states[$iso]:[];
+        $countryStates = isset($states[$iso])?$states[$iso]:[];
 
-    $fields = [
-        'title_en'=>$countryTitle,
-        'require_state'=> !empty($countryStates)?1:0,
-        'iso'=>$iso
-    ];
-
-    $modx->db->insert($modx->db->escape($fields),$countryTable);
-
-    foreach ($countryStates as $stateIso => $countryState) {
-
-        $stateFields = [
-            'country_iso'=>$iso,
-            'title_en'=>$countryState,
-            'iso'=>$stateIso
+        $fields = [
+            'title_en'=>$countryTitle,
+            'require_state'=> !empty($countryStates)?1:0,
+            'iso'=>$iso
         ];
 
-        $modx->db->insert($modx->db->escape($stateFields),$statesTable);
+        $modx->db->insert($modx->db->escape($fields),$countryTable);
+
+        foreach ($countryStates as $stateIso => $countryState) {
+
+            $stateFields = [
+                'country_iso'=>$iso,
+                'title_en'=>$countryState,
+                'iso'=>$stateIso
+            ];
+
+            $modx->db->insert($modx->db->escape($stateFields),$statesTable);
 
 
+        }
     }
 }
-
 $events = [
     'OnCommerceDeliveryGoshippoBeforeMarkupRender',
     'OnCommerceDeliveryGoshippoAddressReceived',
     'OnCommerceDeliveryGoshippoParcelsCalculate',
+    'OnCommerceDeliveryGoshippoBeforeRatesCalculate',
     'OnCommerceDeliveryGoshippoRatesCalculate',
+    'OnCommerceDeliveryGoshippoBeforeInvoiceCreate',
     'OnCommerceDeliveryGoshippoInvoiceCreate',
-    'OnCommerceDeliveryGoshippoInvoiceCreate',
+
 
 ];
 
-$query  = $modx->db->select('*', $tableEventnames, "`groupname` = 'CommerceDeliveryGoshippo'");
+$query  = $modx->db->select('*', $tableEventnames, "`groupname` = 'Goshippo'");
 $exists = [];
 
 while ($row = $modx->db->getRow($query)) {
@@ -404,7 +407,7 @@ foreach ($events as $event) {
         $modx->db->insert([
             'name'      => $event,
             'service'   => 7,
-            'groupname' => 'CommerceDeliveryGoshippo',
+            'groupname' => 'Goshippo',
         ], $tableEventnames);
     }
 }

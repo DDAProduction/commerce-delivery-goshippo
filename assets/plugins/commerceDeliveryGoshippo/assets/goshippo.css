@@ -5,3 +5,7 @@
 .goshippo-reload{
     opacity: 0.5;
 }
+
+.goshippo_errors{
+    color: red;
+}

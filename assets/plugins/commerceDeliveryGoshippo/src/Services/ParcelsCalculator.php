@@ -60,6 +60,7 @@ class ParcelsCalculator
 
 
         $this->modx->invokeEvent('OnCommerceDeliveryGoshippoParcelsCalculate',[
+            'items'=> $items,
             'parcels'=>&$parcels,
         ]);
 

@@ -32,6 +32,7 @@ return [
     'generate'=>'Generate',
     'invoice_create'=>'Invoice create',
     'update'=>'Update',
+    'rates_get_failed'=>'Failed to get rates',
 
 
 
